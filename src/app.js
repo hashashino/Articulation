@@ -18,6 +18,7 @@ const state = {
   cardIndex: 0,
   phase: 'idle',       // 'idle' | 'listening' | 'result' | 'encouragement'
   recognitionResult: null,  // 'correct' | 'try-again' | 'unsupported' | null
+  micError: null,           // 'blocked' | 'nospeech' | 'nobrowser' | 'other' | null
   transcript: '',
   direction: 1,
 
@@ -57,6 +58,7 @@ function updateSpeakingUI() {
 // Speech Recognition
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
+let recognitionTimeout = null;
 
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
@@ -68,12 +70,14 @@ function levenshtein(a, b) {
 
 function startListening(targetWord) {
   if (!SR) {
+    state.micError = 'nobrowser';
     state.recognitionResult = 'unsupported';
     state.phase = 'result';
     renderPracticeScreen();
     return;
   }
   if (recognition) { try { recognition.abort(); } catch {} }
+  clearTimeout(recognitionTimeout);
 
   recognition = new SR();
   recognition.continuous = false;
@@ -83,11 +87,19 @@ function startListening(targetWord) {
 
   recognition.onstart = () => {
     state.listening = true;
+    state.micError = null;
     state.phase = 'listening';
     updateSayItUI();
+    // Auto-stop after 7 seconds if no speech detected
+    recognitionTimeout = setTimeout(() => {
+      if (state.listening) {
+        try { recognition.stop(); } catch {}
+      }
+    }, 7000);
   };
 
   recognition.onresult = (evt) => {
+    clearTimeout(recognitionTimeout);
     const alts = Array.from(evt.results[0]).map(a => a.transcript.toLowerCase().trim());
     state.transcript = alts[0] || '';
     const target = targetWord.toLowerCase();
@@ -101,14 +113,27 @@ function startListening(targetWord) {
   };
 
   recognition.onerror = (evt) => {
+    clearTimeout(recognitionTimeout);
     state.listening = false;
-    state.recognitionResult = evt.error === 'not-allowed' ? 'unsupported' : 'try-again';
-    if (state.recognitionResult === 'try-again') state.sessionScore.total++;
+    if (evt.error === 'not-allowed' || evt.error === 'permission-denied') {
+      state.micError = 'blocked';
+      state.recognitionResult = 'unsupported';
+    } else if (evt.error === 'no-speech') {
+      state.micError = 'nospeech';
+      state.recognitionResult = 'unsupported';
+    } else {
+      state.micError = 'other';
+      state.recognitionResult = 'unsupported';
+    }
     state.phase = 'result';
     renderPracticeScreen();
   };
 
-  recognition.onend = () => { state.listening = false; updateSayItUI(); };
+  recognition.onend = () => {
+    clearTimeout(recognitionTimeout);
+    state.listening = false;
+    updateSayItUI();
+  };
 
   recognition.start();
 }
@@ -310,6 +335,7 @@ function navigateToPractice(soundKey) {
   state.cardIndex = 0;
   state.phase = 'idle';
   state.recognitionResult = null;
+  state.micError = null;
   state.transcript = '';
   state.listening = false;
   state.speaking = false;
@@ -350,10 +376,17 @@ function renderPracticeScreen() {
           </div>
         </div>`;
     } else {
+      const micMsg = state.micError === 'blocked'
+        ? '🚫 Microphone blocked! Tap the 🔒 lock icon in your browser address bar and allow the microphone, then try again.'
+        : state.micError === 'nospeech'
+        ? '🎤 No speech heard. Speak louder and closer to the mic!'
+        : state.micError === 'nobrowser'
+        ? '😅 Voice not supported in this browser. Please use Chrome or Safari!'
+        : '😅 Did you say it?';
       resultBlock = `
         <div class="recognition-result unsupported">
-          <span class="result-icon">😅</span>
-          <span class="result-label" style="color:#4b5563">Did you say it?</span>
+          <span class="result-icon">${state.micError === 'blocked' ? '🚫' : state.micError === 'nospeech' ? '🎤' : '😅'}</span>
+          <span class="result-label" style="color:#4b5563;font-size:1rem;text-align:center;line-height:1.4">${micMsg}</span>
           <div class="result-buttons">
             <button class="btn-next" id="btn-rn-yes">✅ I said it!</button>
             <button class="btn-skip" id="btn-rn-skip">Skip →</button>
@@ -420,12 +453,6 @@ function renderPracticeScreen() {
         <div class="diagram-body" id="diagram-body">
           <div class="diagram-tip" style="background:${sound.color}">${sound.tip}</div>
           <div id="diagram-svg-container"></div>
-          <div class="diagram-legend">
-            <span class="legend-item"><span class="legend-dot" style="background:#fb923c"></span>Tongue</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#f97316"></span>Lips</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#d4a37a"></span>Palate</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Alveolar ridge</span>
-          </div>
         </div>
       </div>
 
