@@ -368,12 +368,13 @@ function renderPracticeScreen() {
       resultBlock = `
         <div class="recognition-result try-again">
           <span class="result-icon">💪</span>
-          <span class="result-label" style="color:#ea580c">Good try!</span>
+          <span class="result-label" style="color:#ea580c">Good try! Say it again!</span>
           ${state.transcript ? `<span class="result-transcript">I heard: "${state.transcript}"</span>` : ''}
-          <div class="result-buttons">
-            <button class="btn-retry" id="btn-rn-retry">🔄 Try again</button>
-            <button class="btn-skip" id="btn-rn-skip">Skip →</button>
-          </div>
+          <button class="btn-say btn-say-retry" id="btn-rn-retry">
+            <span class="say-icon">🎤</span>
+            <span class="say-text">Say it!</span>
+          </button>
+          <button class="btn-skip" id="btn-rn-skip">Skip →</button>
         </div>`;
     } else {
       const micMsg = state.micError === 'blocked'
@@ -531,11 +532,12 @@ function renderPracticeScreen() {
   if (rnNext) rnNext.addEventListener('click', () => advanceCard(true));
   if (rnYes)  rnYes.addEventListener('click',  () => advanceCard(false));
   if (rnRetry) rnRetry.addEventListener('click', () => {
-    state.phase = 'idle';
     state.recognitionResult = null;
+    state.micError = null;
     state.transcript = '';
     clearRecording();
-    renderPracticeScreen();
+    // Go straight into listening — no extra tap needed
+    startListening(word.word);
   });
   if (rnSkip) rnSkip.addEventListener('click', () => advanceCard(false));
 
