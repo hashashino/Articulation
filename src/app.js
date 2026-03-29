@@ -325,6 +325,10 @@ function renderPracticeScreen() {
           <span class="result-label" style="color:#16a34a">Great job!</span>
           ${state.transcript ? `<span class="result-transcript">I heard: "${state.transcript}"</span>` : ''}
           <button class="btn-next" id="btn-rn-next">Next word →</button>
+          <button class="btn-say btn-say-retry" id="btn-rn-retry">
+            <span class="say-icon">🎤</span>
+            <span class="say-text">Again!</span>
+          </button>
         </div>`;
     } else if (r === 'try-again') {
       resultBlock = `
