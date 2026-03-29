@@ -76,29 +76,36 @@ function startListening(targetWord) {
     renderPracticeScreen();
     return;
   }
-  if (recognition) { try { recognition.abort(); } catch {} }
+
+  // Clean up previous instance without triggering its stale handlers
+  const prev = recognition;
+  recognition = null;
+  if (prev) { try { prev.abort(); } catch {} }
   clearTimeout(recognitionTimeout);
 
-  recognition = new SR();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.lang = 'en-US';
-  recognition.maxAlternatives = 3;
+  // Use a local ref so stale onend/onerror from a previous instance can't corrupt state
+  const rec = new SR();
+  recognition = rec;
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.lang = 'en-US';
+  rec.maxAlternatives = 3;
 
-  recognition.onstart = () => {
+  rec.onstart = () => {
+    if (recognition !== rec) return; // stale — a newer call already took over
     state.listening = true;
     state.micError = null;
     state.phase = 'listening';
-    updateSayItUI();
-    // Auto-stop after 7 seconds if no speech detected
+    renderPracticeScreen(); // always re-render so "Listening!" shows even on retry
     recognitionTimeout = setTimeout(() => {
-      if (state.listening) {
-        try { recognition.stop(); } catch {}
+      if (recognition === rec && state.listening) {
+        try { rec.stop(); } catch {}
       }
     }, 7000);
   };
 
-  recognition.onresult = (evt) => {
+  rec.onresult = (evt) => {
+    if (recognition !== rec) return;
     clearTimeout(recognitionTimeout);
     const alts = Array.from(evt.results[0]).map(a => a.transcript.toLowerCase().trim());
     state.transcript = alts[0] || '';
@@ -109,33 +116,51 @@ function startListening(targetWord) {
     state.sessionScore.total++;
     state.listening = false;
     state.phase = 'result';
+    recognition = null;
     renderPracticeScreen();
   };
 
-  recognition.onerror = (evt) => {
+  rec.onerror = (evt) => {
+    if (recognition !== rec) return;
     clearTimeout(recognitionTimeout);
     state.listening = false;
     if (evt.error === 'not-allowed' || evt.error === 'permission-denied') {
       state.micError = 'blocked';
-      state.recognitionResult = 'unsupported';
     } else if (evt.error === 'no-speech') {
       state.micError = 'nospeech';
-      state.recognitionResult = 'unsupported';
     } else {
       state.micError = 'other';
-      state.recognitionResult = 'unsupported';
     }
+    state.recognitionResult = 'unsupported';
     state.phase = 'result';
+    recognition = null;
     renderPracticeScreen();
   };
 
-  recognition.onend = () => {
+  rec.onend = () => {
+    if (recognition !== rec) return; // stale
     clearTimeout(recognitionTimeout);
-    state.listening = false;
-    updateSayItUI();
+    recognition = null;
+    // onend fires after onresult too — only act if we never got a result/error
+    if (state.listening) {
+      state.listening = false;
+      state.micError = 'nospeech';
+      state.recognitionResult = 'unsupported';
+      state.phase = 'result';
+      renderPracticeScreen();
+    }
   };
 
-  recognition.start();
+  try {
+    rec.start();
+  } catch {
+    recognition = null;
+    state.listening = false;
+    state.micError = 'other';
+    state.recognitionResult = 'unsupported';
+    state.phase = 'result';
+    renderPracticeScreen();
+  }
 }
 
 function updateSayItUI() {
@@ -536,8 +561,7 @@ function renderPracticeScreen() {
     state.micError = null;
     state.transcript = '';
     clearRecording();
-    // Go straight into listening — no extra tap needed
-    startListening(word.word);
+    startListening(word.word); // onstart will re-render to show Listening!
   });
   if (rnSkip) rnSkip.addEventListener('click', () => advanceCard(false));
 
