@@ -599,7 +599,7 @@ function renderIntroCard() {
           ${examples.map(w => `<span class="intro-example">${w.emoji} ${w.word}</span>`).join('')}
         </div>
         <button class="btn-hear intro-hear" id="btn-intro-hear">
-          <span>👂</span> Hear the sound!
+          <span>👂</span> Hear the words!
         </button>
 
         <div class="diagram-toggle">
@@ -625,7 +625,9 @@ function renderIntroCard() {
     state.screen = 'home'; renderHome();
   });
   document.getElementById('btn-intro-hear').addEventListener('click', () => {
-    speak(LETTER_SOUNDS[sound.key] || sound.label);
+    // Speak example words — TTS can't pronounce isolated phonemes cleanly
+    const exWords = sound.words.slice(0, 3).map(w => w.word).join(', ');
+    speak(exWords);
   });
   document.getElementById('btn-diagram-toggle').addEventListener('click', () => {
     const body = document.getElementById('diagram-body');
