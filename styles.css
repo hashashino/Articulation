@@ -456,48 +456,6 @@ button { cursor: pointer; border: none; font-family: inherit; font-weight: 800; 
 }
 .btn-skip:active { transform: scale(.92); }
 
-/* Record playback */
-.record-section { padding: 4px 16px 8px; display: flex; justify-content: center; }
-.btn-record {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 18px;
-  border-radius: 16px;
-  background: #f3f4f6;
-  color: #4b5563;
-  font-size: .85rem;
-  font-weight: 900;
-  border: 2px solid #e5e7eb;
-  transition: transform .12s;
-  user-select: none;
-}
-.btn-record:active { transform: scale(.93); }
-.btn-record.recording {
-  background: #fee2e2;
-  border-color: #fca5a5;
-  color: #dc2626;
-}
-.playback-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #eff6ff;
-  border: 2px solid #bfdbfe;
-  border-radius: 16px;
-  padding: 8px 12px;
-  width: 100%;
-}
-.playback-audio { flex: 1; height: 32px; }
-.btn-clear {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 1.1rem;
-  font-weight: 900;
-  padding: 0 4px;
-  cursor: pointer;
-}
 
 /* ===== ENCOURAGEMENT OVERLAY ===== */
 .encouragement-overlay {

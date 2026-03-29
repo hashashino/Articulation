@@ -25,8 +25,6 @@ const state = {
   // voice features
   listening: false,
   speaking: false,
-  recording: false,
-  audioUrl: null,
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -77,8 +75,8 @@ function startListening(targetWord) {
     return;
   }
 
-  // Release MediaRecorder stream so it doesn't block the mic
-  releaseMicStream();
+  // Stop any playing speech so it doesn't bleed into the mic
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
 
   // Clean up previous instance — null handlers first so no stale callbacks fire
   const prev = recognition;
@@ -181,98 +179,6 @@ function startListening(targetWord) {
   }
 }
 
-function updateSayItUI() {
-  const btn = document.getElementById('btn-say');
-  if (!btn) return;
-  btn.classList.toggle('listening', state.listening);
-  btn.disabled = state.listening;
-  btn.querySelector('.say-icon').textContent = state.listening ? '🎤' : '🎤';
-  btn.querySelector('.say-text').textContent = state.listening ? 'Listening!' : 'Say it!';
-  const hint = document.getElementById('say-hint');
-  if (hint) hint.classList.toggle('hidden', !state.listening);
-  const ring = btn.querySelector('.mic-ring');
-  const ring2 = btn.querySelector('.mic-ring-2');
-  if (ring) ring.classList.toggle('hidden', !state.listening);
-  if (ring2) ring2.classList.toggle('hidden', !state.listening);
-}
-
-// MediaRecorder
-let mediaRecorder = null;
-let audioChunks = [];
-let micStream = null; // tracked so we can release it before speech recognition
-
-function releaseMicStream() {
-  if (micStream) {
-    micStream.getTracks().forEach(t => t.stop());
-    micStream = null;
-  }
-  if (mediaRecorder && state.recording) {
-    try { mediaRecorder.stop(); } catch {}
-    mediaRecorder = null;
-    state.recording = false;
-  }
-}
-
-async function startRecording() {
-  audioChunks = [];
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    micStream = stream;
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunks, { type: 'audio/webm' });
-      if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
-      state.audioUrl = URL.createObjectURL(blob);
-      state.recording = false;
-      releaseMicStream();
-      renderRecordSection();
-    };
-    mediaRecorder.start();
-    state.recording = true;
-    renderRecordSection();
-  } catch {
-    state.recording = false;
-    renderRecordSection();
-  }
-}
-
-function stopRecording() {
-  if (mediaRecorder && state.recording) mediaRecorder.stop();
-}
-
-function clearRecording() {
-  releaseMicStream();
-  if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
-  renderRecordSection();
-}
-
-function renderRecordSection() {
-  const sec = document.getElementById('record-section');
-  if (!sec) return;
-  const supported = !!(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
-  if (!supported) { sec.innerHTML = ''; return; }
-
-  if (state.audioUrl) {
-    sec.innerHTML = `
-      <div class="playback-row">
-        <span>🔊</span>
-        <audio class="playback-audio" src="${state.audioUrl}" controls></audio>
-        <button class="btn-clear" id="btn-clear-rec" title="Clear recording">✕</button>
-      </div>`;
-    document.getElementById('btn-clear-rec').addEventListener('click', clearRecording);
-  } else {
-    sec.innerHTML = `
-      <button class="btn-record${state.recording ? ' recording' : ''}" id="btn-record">
-        <span>${state.recording ? '🔴' : '🎙️'}</span>
-        <span>${state.recording ? 'Recording...' : 'Record & Listen'}</span>
-      </button>`;
-    const btn = document.getElementById('btn-record');
-    btn.addEventListener('pointerdown', startRecording);
-    btn.addEventListener('pointerup', stopRecording);
-    btn.addEventListener('pointerleave', stopRecording);
-  }
-}
 
 // ══════════════════════════════════════════════════════════════════════
 // ENCOURAGEMENT OVERLAY
@@ -397,8 +303,6 @@ function navigateToPractice(soundKey) {
   state.transcript = '';
   state.listening = false;
   state.speaking = false;
-  state.recording = false;
-  if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
   state.sessionScore = { correct: 0, total: 0 };
   state.screen = 'practice';
   renderPracticeScreen();
@@ -537,8 +441,6 @@ function renderPracticeScreen() {
       <!-- Recognition result -->
       ${resultBlock}
 
-      <!-- Record section -->
-      ${state.phase === 'idle' ? `<div class="record-section" id="record-section"></div>` : ''}
     </div>
     <div id="encouragement-overlay" class="encouragement-overlay hidden"></div>`;
 
@@ -560,7 +462,6 @@ function renderPracticeScreen() {
       state.phase = 'idle';
       state.recognitionResult = null;
       state.transcript = '';
-      clearRecording();
       renderPracticeScreen();
     }
   });
@@ -599,13 +500,9 @@ function renderPracticeScreen() {
     state.recognitionResult = null;
     state.micError = null;
     state.transcript = '';
-    clearRecording();
     startListening(word.word); // onstart will re-render to show Listening!
   });
   if (rnSkip) rnSkip.addEventListener('click', () => advanceCard(false));
-
-  // Record section
-  if (state.phase === 'idle') renderRecordSection();
 }
 
 function advanceCard(showMsg = true) {
