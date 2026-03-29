@@ -10,7 +10,9 @@ const LETTER_SOUNDS = {
   a:'ah', b:'buh', c:'kuh', d:'duh', e:'eh', f:'fff', g:'guh',
   h:'huh', i:'ih', j:'juh', k:'kuh', l:'lll', m:'mmm', n:'nnn',
   o:'oh', p:'puh', q:'kwuh', r:'rrr', s:'sss', t:'tuh', u:'uh',
-  v:'vvv', w:'wuh', x:'ks', y:'yuh', z:'zzz'
+  v:'vvv', w:'wuh', x:'ks', y:'yuh', z:'zzz',
+  // digraphs
+  sh:'shh', ch:'ch', ng:'ng', th:'th', dh:'the',
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -395,7 +397,10 @@ function renderPracticeScreen() {
   }).join('');
 
   // Letters display for reading — highlight target letter(s)
-  const targetLetters = sound.key === 'k' ? ['k','c'] : [sound.key];
+  // k maps to both 'k' and 'c'; dh uses 'th' digraph in letters array
+  const targetLetters = sound.key === 'k' ? ['k','c']
+    : sound.key === 'dh' ? ['th']
+    : [sound.key];
   const lettersHtml = word.letters
     ? `<div id="card-word-letters" class="card-word" style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap;">
         ${word.letters.map(l =>
@@ -799,7 +804,7 @@ function renderBlendScreen() {
         <div class="blend-letters-row">
           ${letters.map((l, i) => `
             <button class="blend-letter-box" id="blend-letter-${i}"
-              data-letter="${l}" style="border-color:${sound.color}">
+              data-letter="${l}" style="border-color:${sound.color};${l.length > 1 ? 'width:90px;font-size:1.8rem;' : ''}">
               ${l}
             </button>`).join('')}
         </div>

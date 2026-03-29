@@ -209,17 +209,100 @@ function rhoticSVG(c) {
   );
 }
 
+function postalveolarSVG(c) {
+  // Tongue bunched slightly further back than alveolar, lips slightly rounded
+  return lipsSVG(
+    `<path d="M 30 58 Q 70 40 110 46 Q 150 40 190 58" fill="none"
+       stroke="#c2410c" stroke-width="5" stroke-linecap="round"/>
+     <path d="M 30 58 Q 110 47 190 58" fill="#f87171" opacity=".7"/>
+     <path d="M 30 90 Q 110 106 190 90" fill="#f87171"/>
+     <path d="M 30 90 Q 110 104 190 90" fill="none"
+       stroke="#c2410c" stroke-width="4" stroke-linecap="round"/>`,
+    `<ellipse cx="110" cy="74" rx="70" ry="30" fill="#1f2937"/>`,
+    `<rect x="45" y="58" width="130" height="16" rx="5" fill="white" stroke="#d1d5db" stroke-width="1.5"/>
+     <line x1="67" y1="58" x2="67" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="89" y1="58" x2="89" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="110" y1="58" x2="110" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="131" y1="58" x2="131" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="153" y1="58" x2="153" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>`,
+    // Tongue blade raised and bunched back — wider hump than alveolar
+    `<path d="M 45 90 Q 80 80 110 72 Q 140 80 175 90 Q 110 100 45 90" fill="#fb923c"/>
+     <ellipse cx="110" cy="74" rx="22" ry="13" fill="${c}" opacity=".5" stroke="${c}" stroke-width="2.5"/>
+     <text x="108" y="64" font-size="18" fill="${c}">↑</text>`,
+    'TONGUE BUNCHED BACK!', c
+  );
+}
+
+function affricateSVG(c) {
+  // Tongue tip touches alveolar ridge then releases — show both positions with arrow
+  return lipsSVG(
+    `<path d="M 30 58 Q 70 40 110 46 Q 150 40 190 58" fill="none"
+       stroke="#c2410c" stroke-width="5" stroke-linecap="round"/>
+     <path d="M 30 58 Q 110 47 190 58" fill="#f87171" opacity=".7"/>
+     <path d="M 30 90 Q 110 106 190 90" fill="#f87171"/>
+     <path d="M 30 90 Q 110 104 190 90" fill="none"
+       stroke="#c2410c" stroke-width="4" stroke-linecap="round"/>`,
+    `<ellipse cx="110" cy="74" rx="70" ry="30" fill="#1f2937"/>`,
+    `<rect x="45" y="58" width="130" height="16" rx="5" fill="white" stroke="#d1d5db" stroke-width="1.5"/>
+     <line x1="67" y1="58" x2="67" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="89" y1="58" x2="89" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="110" y1="58" x2="110" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="131" y1="58" x2="131" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="153" y1="58" x2="153" y2="74" stroke="#e5e7eb" stroke-width="1.5"/>`,
+    // Tongue tip touching ridge with release arrow
+    `<path d="M 50 90 Q 90 72 130 76 Q 160 78 175 90 Q 110 100 50 90" fill="#fb923c"/>
+     <!-- Tongue tip at alveolar ridge -->
+     <ellipse cx="100" cy="72" rx="13" ry="9" fill="${c}" stroke="#9a3412" stroke-width="2.5"/>
+     <!-- Release arrow -->
+     <text x="118" y="70" font-size="16" fill="${c}">→</text>
+     <text x="138" y="64" font-size="14" fill="${c}" opacity=".7">sh</text>`,
+    'TIP UP, THEN RELEASE!', c
+  );
+}
+
+function dentalSVG(c) {
+  // Tongue tip visible between upper and lower teeth
+  return lipsSVG(
+    `<path d="M 30 58 Q 70 42 110 47 Q 150 42 190 58" fill="none"
+       stroke="#c2410c" stroke-width="5" stroke-linecap="round"/>
+     <path d="M 30 58 Q 110 50 190 58" fill="#f87171" opacity=".6"/>
+     <path d="M 30 86 Q 110 100 190 86" fill="#f87171"/>
+     <path d="M 30 86 Q 110 98 190 86" fill="none"
+       stroke="#c2410c" stroke-width="4" stroke-linecap="round"/>`,
+    `<ellipse cx="110" cy="72" rx="68" ry="26" fill="#1f2937"/>`,
+    // Upper teeth
+    `<rect x="46" y="58" width="128" height="14" rx="5" fill="white" stroke="#d1d5db" stroke-width="1.5"/>
+     <line x1="68" y1="58" x2="68" y2="72" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="90" y1="58" x2="90" y2="72" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="110" y1="58" x2="110" y2="72" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="130" y1="58" x2="130" y2="72" stroke="#e5e7eb" stroke-width="1.5"/>
+     <line x1="152" y1="58" x2="152" y2="72" stroke="#e5e7eb" stroke-width="1.5"/>
+     <!-- Lower teeth -->
+     <rect x="46" y="72" width="128" height="12" rx="4" fill="white" stroke="#d1d5db" stroke-width="1.5"/>`,
+    // Tongue tip sticking out BETWEEN teeth
+    `<path d="M 70 86 Q 110 68 150 86 Q 110 94 70 86" fill="#fb923c"/>
+     <!-- Tongue tip visible between teeth -->
+     <ellipse cx="110" cy="72" rx="16" ry="9" fill="${c}" stroke="#9a3412" stroke-width="2.5"/>
+     <!-- Arrow pointing at tongue between teeth -->
+     <text x="148" y="68" font-size="16" fill="${c}">↑</text>`,
+    'TONGUE BETWEEN TEETH!', c
+  );
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 const SVG_FNS = {
-  bilabial:    bilabialSVG,
-  alveolar:    alveolarSVG,
-  velar:       velarSVG,
-  labiodental: labiodentSVG,
-  sibilant:    sibilantSVG,
-  glottal:     glottalSVG,
-  glide:       glideSVG,
-  rhotic:      rhoticSVG,
+  bilabial:      bilabialSVG,
+  alveolar:      alveolarSVG,
+  velar:         velarSVG,
+  labiodental:   labiodentSVG,
+  sibilant:      sibilantSVG,
+  glottal:       glottalSVG,
+  glide:         glideSVG,
+  rhotic:        rhoticSVG,
+  postalveolar:  postalveolarSVG,
+  affricate:     affricateSVG,
+  dental:        dentalSVG,
 };
 
 export function renderMouthSVG(phonemeClass, accentColor = '#8b5cf6') {
