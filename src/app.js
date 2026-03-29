@@ -402,17 +402,23 @@ function renderPracticeScreen() {
           <button class="btn-skip" id="btn-rn-skip">Skip →</button>
         </div>`;
     } else {
+      const canRetryMic = state.micError !== 'blocked' && state.micError !== 'nobrowser';
       const micMsg = state.micError === 'blocked'
-        ? '🚫 Microphone blocked! Tap the 🔒 lock icon in your browser address bar and allow the microphone, then try again.'
+        ? '🚫 Microphone blocked! Tap the 🔒 lock in your browser address bar and allow the microphone.'
         : state.micError === 'nospeech'
-        ? '🎤 No speech heard. Speak louder and closer to the mic!'
+        ? "Couldn't hear you! Try speaking louder."
         : state.micError === 'nobrowser'
-        ? '😅 Voice not supported in this browser. Please use Chrome or Safari!'
-        : '😅 Did you say it?';
+        ? '😅 Voice not supported here. Use Chrome or Safari!'
+        : "Couldn't hear you! Try again.";
       resultBlock = `
         <div class="recognition-result unsupported">
-          <span class="result-icon">${state.micError === 'blocked' ? '🚫' : state.micError === 'nospeech' ? '🎤' : '😅'}</span>
+          <span class="result-icon">${state.micError === 'blocked' ? '🚫' : '🎤'}</span>
           <span class="result-label" style="color:#4b5563;font-size:1rem;text-align:center;line-height:1.4">${micMsg}</span>
+          ${canRetryMic ? `
+          <button class="btn-say btn-say-retry" id="btn-rn-retry">
+            <span class="say-icon">🎤</span>
+            <span class="say-text">Try again!</span>
+          </button>` : ''}
           <div class="result-buttons">
             <button class="btn-next" id="btn-rn-yes">✅ I said it!</button>
             <button class="btn-skip" id="btn-rn-skip">Skip →</button>
