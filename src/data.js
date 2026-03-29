@@ -18,6 +18,7 @@ export const sounds = [
     key: 'm', label: '/m/', phonemeClass: 'bilabial',
     emoji: '🎵', color: '#a78bfa', colorLight: '#ede9fe', curriculumLevel: 1,
     tip: 'Press your lips together and hum!',
+    blendWords: ['mop', 'map', 'mud'],
     words: [
       { word: 'moon',   emoji: '🌙', letters: ['m','o','o','n'] },
       { word: 'monkey', emoji: '🐒', letters: ['m','o','n','k','e','y'] },
@@ -33,6 +34,7 @@ export const sounds = [
     key: 'p', label: '/p/', phonemeClass: 'bilabial',
     emoji: '🐷', color: '#f472b6', colorLight: '#fce7f3', curriculumLevel: 2,
     tip: 'Press your lips together, then pop them open!',
+    blendWords: ['pig', 'pop', 'pan'],
     words: [
       { word: 'pig',   emoji: '🐷', letters: ['p','i','g'] },
       { word: 'pizza', emoji: '🍕', letters: ['p','i','z','z','a'] },
@@ -48,6 +50,7 @@ export const sounds = [
     key: 'b', label: '/b/', phonemeClass: 'bilabial',
     emoji: '🐝', color: '#facc15', colorLight: '#fef9c3', curriculumLevel: 3,
     tip: 'Press your lips together and let your voice buzz!',
+    blendWords: ['big', 'bus', 'bat'],
     words: [
       { word: 'ball',  emoji: '⚽', letters: ['b','a','l','l'] },
       { word: 'bear',  emoji: '🐻', letters: ['b','e','a','r'] },
@@ -63,6 +66,7 @@ export const sounds = [
     key: 't', label: '/t/', phonemeClass: 'alveolar',
     emoji: '🐢', color: '#4ade80', colorLight: '#dcfce7', curriculumLevel: 4,
     tip: 'Tap your tongue behind your top teeth!',
+    blendWords: ['top', 'tap', 'tub'],
     words: [
       { word: 'turtle', emoji: '🐢', letters: ['t','u','r','t','l','e'] },
       { word: 'tiger',  emoji: '🐯', letters: ['t','i','g','e','r'] },
@@ -78,6 +82,7 @@ export const sounds = [
     key: 'd', label: '/d/', phonemeClass: 'alveolar',
     emoji: '🦆', color: '#60a5fa', colorLight: '#dbeafe', curriculumLevel: 5,
     tip: 'Tap your tongue behind your top teeth with your voice on!',
+    blendWords: ['dig', 'dot', 'den'],
     words: [
       { word: 'duck',  emoji: '🦆', letters: ['d','u','c','k'] },
       { word: 'dog',   emoji: '🐕', letters: ['d','o','g'] },
@@ -93,6 +98,7 @@ export const sounds = [
     key: 'n', label: '/n/', phonemeClass: 'alveolar',
     emoji: '🌙', color: '#818cf8', colorLight: '#e0e7ff', curriculumLevel: 6,
     tip: 'Touch your tongue up and hum through your nose!',
+    blendWords: ['net', 'nap', 'nod'],
     words: [
       { word: 'nose',  emoji: '👃', letters: ['n','o','s','e'] },
       { word: 'nest',  emoji: '🪺', letters: ['n','e','s','t'] },
@@ -108,6 +114,7 @@ export const sounds = [
     key: 'h', label: '/h/', phonemeClass: 'glottal',
     emoji: '🏠', color: '#fb923c', colorLight: '#ffedd5', curriculumLevel: 7,
     tip: 'Open your mouth and breathe out warm air like fogging a mirror!',
+    blendWords: ['hat', 'hop', 'hen'],
     words: [
       { word: 'house',  emoji: '🏠', letters: ['h','o','u','s','e'] },
       { word: 'hat',    emoji: '🎩', letters: ['h','a','t'] },
@@ -123,6 +130,7 @@ export const sounds = [
     key: 'w', label: '/w/', phonemeClass: 'glide',
     emoji: '🌊', color: '#22d3ee', colorLight: '#cffafe', curriculumLevel: 8,
     tip: "Round your lips like you're blowing bubbles!",
+    blendWords: ['web', 'wig', 'wet'],
     words: [
       { word: 'wave',   emoji: '🌊', letters: ['w','a','v','e'] },
       { word: 'worm',   emoji: '🪱', letters: ['w','o','r','m'] },
@@ -138,6 +146,7 @@ export const sounds = [
     key: 'k', label: '/k/', phonemeClass: 'velar',
     emoji: '🐱', color: '#fb7185', colorLight: '#ffe4e6', curriculumLevel: 9,
     tip: 'Lift the back of your tongue up to the top of your mouth!',
+    blendWords: ['cat', 'cup', 'cap'],
     words: [
       { word: 'cat',  emoji: '🐱', letters: ['c','a','t'] },
       { word: 'key',  emoji: '🔑', letters: ['k','e','y'] },
@@ -153,6 +162,7 @@ export const sounds = [
     key: 'g', label: '/g/', phonemeClass: 'velar',
     emoji: '🦒', color: '#a3e635', colorLight: '#ecfccb', curriculumLevel: 10,
     tip: 'Lift the back of your tongue with your voice on!',
+    blendWords: ['got', 'gum', 'gap'],
     words: [
       { word: 'goat',  emoji: '🐐', letters: ['g','o','a','t'] },
       { word: 'girl',  emoji: '👧', letters: ['g','i','r','l'] },
@@ -168,6 +178,7 @@ export const sounds = [
     key: 'f', label: '/f/', phonemeClass: 'labiodental',
     emoji: '🦊', color: '#fbbf24', colorLight: '#fef3c7', curriculumLevel: 11,
     tip: 'Put your top teeth gently on your bottom lip and blow!',
+    blendWords: ['fox', 'fan', 'fit'],
     words: [
       { word: 'fox',    emoji: '🦊', letters: ['f','o','x'] },
       { word: 'fish',   emoji: '🐟', letters: ['f','i','s','h'] },
@@ -183,6 +194,7 @@ export const sounds = [
     key: 'l', label: '/l/', phonemeClass: 'alveolar',
     emoji: '🦁', color: '#2dd4bf', colorLight: '#ccfbf1', curriculumLevel: 12,
     tip: 'Touch your tongue tip behind your top teeth and let air flow over the sides!',
+    blendWords: ['lip', 'log', 'lap'],
     words: [
       { word: 'lion',  emoji: '🦁', letters: ['l','i','o','n'] },
       { word: 'lamp',  emoji: '💡', letters: ['l','a','m','p'] },
@@ -198,6 +210,7 @@ export const sounds = [
     key: 's', label: '/s/', phonemeClass: 'sibilant',
     emoji: '🐍', color: '#34d399', colorLight: '#d1fae5', curriculumLevel: 13,
     tip: 'Put your tongue near your teeth and make a hissing snake sound!',
+    blendWords: ['sun', 'sit', 'sap'],
     words: [
       { word: 'snake', emoji: '🐍', letters: ['s','n','a','k','e'] },
       { word: 'sun',   emoji: '☀️', letters: ['s','u','n'] },
@@ -213,6 +226,7 @@ export const sounds = [
     key: 'r', label: '/r/', phonemeClass: 'rhotic',
     emoji: '🌈', color: '#c084fc', colorLight: '#f3e8ff', curriculumLevel: 14,
     tip: "Curl your tongue up a little and pull it back — don't touch anything!",
+    blendWords: ['red', 'run', 'rip'],
     words: [
       { word: 'rainbow', emoji: '🌈', letters: ['r','a','i','n','b','o','w'] },
       { word: 'rabbit',  emoji: '🐰', letters: ['r','a','b','b','i','t'] },

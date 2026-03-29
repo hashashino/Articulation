@@ -5,22 +5,36 @@ import {
 } from './data.js';
 import { renderMouthSVG } from './mouthDiagram.js';
 
+// Phoneme sounds for TTS (say the sound, not the letter name)
+const LETTER_SOUNDS = {
+  a:'ah', b:'buh', c:'kuh', d:'duh', e:'eh', f:'fff', g:'guh',
+  h:'huh', i:'ih', j:'juh', k:'kuh', l:'lll', m:'mmm', n:'nnn',
+  o:'oh', p:'puh', q:'kwuh', r:'rrr', s:'sss', t:'tuh', u:'uh',
+  v:'vvv', w:'wuh', x:'ks', y:'yuh', z:'zzz'
+};
+
 // ══════════════════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════════════════
 const state = {
-  screen: 'home',      // 'home' | 'practice' | 'celebration'
+  screen: 'home',      // 'home' | 'practice' | 'blend' | 'celebration'
   selectedSound: null,
   sessionScore: { correct: 0, total: 0 },
   progress: loadProgress(),
 
   // practice sub-state
   cardIndex: 0,
-  phase: 'idle',       // 'idle' | 'listening' | 'result' | 'encouragement'
+  phase: 'idle',       // 'intro' | 'idle' | 'listening' | 'result'
   recognitionResult: null,  // 'correct' | 'try-again' | 'unsupported' | null
   micError: null,           // 'blocked' | 'nospeech' | 'nobrowser' | 'other' | null
   transcript: '',
   direction: 1,
+
+  // blend sub-state
+  blendIndex: 0,
+  blendPhase: 'idle',  // 'idle' | 'listening' | 'result'
+  blendResult: null,   // 'correct' | 'try-again' | null
+  blendTranscript: '',
 
   // voice features
   listening: false,
@@ -297,18 +311,23 @@ function renderHome() {
 function navigateToPractice(soundKey) {
   state.selectedSound = soundKey;
   state.cardIndex = 0;
-  state.phase = 'idle';
+  state.phase = 'intro';
   state.recognitionResult = null;
   state.micError = null;
   state.transcript = '';
   state.listening = false;
   state.speaking = false;
   state.sessionScore = { correct: 0, total: 0 };
+  state.blendIndex = 0;
+  state.blendPhase = 'idle';
+  state.blendResult = null;
+  state.blendTranscript = '';
   state.screen = 'practice';
   renderPracticeScreen();
 }
 
 function renderPracticeScreen() {
+  if (state.phase === 'intro') { renderIntroCard(); return; }
   const sound = soundsMap[state.selectedSound];
   const word = sound.words[state.cardIndex];
   const isLast = state.cardIndex === sound.words.length - 1;
@@ -375,10 +394,15 @@ function renderPracticeScreen() {
     return `<div class="${cls}" style="${style}"></div>`;
   }).join('');
 
-  // Letters display for reading
+  // Letters display for reading — highlight target letter(s)
+  const targetLetters = sound.key === 'k' ? ['k','c'] : [sound.key];
   const lettersHtml = word.letters
     ? `<div id="card-word-letters" class="card-word" style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap;">
-        ${word.letters.map(l => `<span class="letter" style="min-width:22px;text-align:center">${l}</span>`).join('')}
+        ${word.letters.map(l =>
+          targetLetters.includes(l)
+            ? `<span class="letter letter-target" style="min-width:22px;text-align:center;color:${sound.color};font-weight:900;font-size:2.2rem">${l}</span>`
+            : `<span class="letter" style="min-width:22px;text-align:center">${l}</span>`
+        ).join('')}
       </div>`
     : `<div class="card-word">${word.word}</div>`;
 
@@ -403,6 +427,7 @@ function renderPracticeScreen() {
       <!-- Picture card -->
       <div class="card-container">
         <div class="picture-card" style="border-color:${sound.color}">
+          <div class="letter-badge" style="background:${sound.color}">${sound.key.toUpperCase()}</div>
           <div class="card-emoji">${word.emoji}</div>
           ${lettersHtml}
         </div>
@@ -519,12 +544,22 @@ function advanceCard(showMsg = true) {
   }
 
   if (isLast) {
-    // Complete the sound
+    // Save progress
     const { correct, total } = state.sessionScore;
     const stars = correct >= total * .8 ? 3 : correct >= total * .5 ? 2 : 1;
     state.progress = markComplete(state.selectedSound, stars);
-    state.screen = 'celebration';
-    setTimeout(renderCelebration, showMsg ? 1200 : 0);
+    // Go to blend screen if blend words exist, otherwise straight to celebration
+    if (sound.blendWords && sound.blendWords.length > 0) {
+      state.screen = 'blend';
+      state.blendIndex = 0;
+      state.blendPhase = 'idle';
+      state.blendResult = null;
+      state.blendTranscript = '';
+      setTimeout(renderBlendScreen, showMsg ? 1200 : 0);
+    } else {
+      state.screen = 'celebration';
+      setTimeout(renderCelebration, showMsg ? 1200 : 0);
+    }
     return;
   }
 
@@ -534,6 +569,319 @@ function advanceCard(showMsg = true) {
   state.transcript = '';
   if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
   setTimeout(renderPracticeScreen, showMsg ? 300 : 0);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// INTRO CARD
+// ══════════════════════════════════════════════════════════════════════
+function renderIntroCard() {
+  const sound = soundsMap[state.selectedSound];
+  const examples = sound.words.slice(0, 3);
+
+  document.getElementById('app').innerHTML = `
+    <div class="screen practice-screen">
+      <div style="background:${sound.color}; padding:12px 16px 8px;">
+        <div class="practice-header">
+          <button class="btn-back" id="btn-back">← Back</button>
+          <div style="text-align:center">
+            <div class="sound-label-header">${sound.label}</div>
+          </div>
+          <div></div>
+        </div>
+      </div>
+
+      <div class="intro-card">
+        <div class="intro-big-letter" style="color:${sound.color};border-color:${sound.color}">
+          ${sound.key.toUpperCase()}${sound.key}
+        </div>
+        <div class="intro-sound-label">${sound.label}</div>
+        <div class="intro-examples">
+          ${examples.map(w => `<span class="intro-example">${w.emoji} ${w.word}</span>`).join('')}
+        </div>
+        <button class="btn-hear intro-hear" id="btn-intro-hear">
+          <span>👂</span> Hear the sound!
+        </button>
+
+        <div class="diagram-toggle">
+          <button class="diagram-toggle-btn" id="btn-diagram-toggle">
+            <span>👄 How to say it</span>
+            <span class="arrow" id="diagram-arrow">▼</span>
+          </button>
+          <div class="diagram-body" id="diagram-body">
+            <div class="diagram-tip" style="background:${sound.color}">${sound.tip}</div>
+            <div id="diagram-svg-container"></div>
+          </div>
+        </div>
+
+        <button class="btn-start-practice" id="btn-start-practice"
+          style="background:${sound.color}">
+          🎯 Let's Practice!
+        </button>
+      </div>
+    </div>
+    <div id="encouragement-overlay" class="encouragement-overlay hidden"></div>`;
+
+  document.getElementById('btn-back').addEventListener('click', () => {
+    state.screen = 'home'; renderHome();
+  });
+  document.getElementById('btn-intro-hear').addEventListener('click', () => {
+    speak(LETTER_SOUNDS[sound.key] || sound.label);
+  });
+  document.getElementById('btn-diagram-toggle').addEventListener('click', () => {
+    const body = document.getElementById('diagram-body');
+    const arrow = document.getElementById('diagram-arrow');
+    const isOpen = body.classList.toggle('open');
+    arrow.classList.toggle('open', isOpen);
+    if (isOpen) document.getElementById('diagram-svg-container').innerHTML =
+      renderMouthSVG(sound.phonemeClass, sound.color);
+  });
+  document.getElementById('btn-start-practice').addEventListener('click', () => {
+    state.phase = 'idle';
+    renderPracticeScreen();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// BLEND SCREEN
+// ══════════════════════════════════════════════════════════════════════
+function startBlendListening(targetWord) {
+  if (!SR) {
+    state.blendPhase = 'result';
+    state.blendResult = null;
+    renderBlendScreen();
+    return;
+  }
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  const prev = recognition;
+  recognition = null;
+  if (prev) {
+    prev.onstart = null; prev.onresult = null; prev.onerror = null; prev.onend = null;
+    try { prev.abort(); } catch {}
+  }
+  clearTimeout(recognitionTimeout);
+
+  const rec = new SR();
+  recognition = rec;
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.lang = 'en-US';
+  rec.maxAlternatives = 3;
+
+  rec.onstart = () => {
+    if (recognition !== rec) return;
+    state.listening = true;
+    state.blendPhase = 'listening';
+    renderBlendScreen();
+    recognitionTimeout = setTimeout(() => {
+      if (recognition !== rec || !state.listening) return;
+      rec.onresult = null; rec.onerror = null; rec.onend = null;
+      recognition = null;
+      state.listening = false;
+      state.blendPhase = 'result';
+      state.blendResult = null;
+      try { rec.abort(); } catch {}
+      renderBlendScreen();
+    }, 8000);
+  };
+
+  rec.onresult = (evt) => {
+    if (recognition !== rec) return;
+    clearTimeout(recognitionTimeout);
+    const alts = Array.from(evt.results[0]).map(a => a.transcript.toLowerCase().trim());
+    state.blendTranscript = alts[0] || '';
+    const target = targetWord.toLowerCase();
+    const ok = alts.some(a => a === target || a.includes(target) || target.includes(a) || levenshtein(a, target) <= 1);
+    state.blendResult = ok ? 'correct' : 'try-again';
+    if (ok) state.sessionScore.correct++;
+    state.sessionScore.total++;
+    state.listening = false;
+    state.blendPhase = 'result';
+    recognition = null;
+    renderBlendScreen();
+  };
+
+  rec.onerror = () => {
+    if (recognition !== rec) return;
+    clearTimeout(recognitionTimeout);
+    state.listening = false;
+    state.blendPhase = 'result';
+    state.blendResult = null;
+    recognition = null;
+    renderBlendScreen();
+  };
+
+  rec.onend = () => {
+    if (recognition !== rec) return;
+    clearTimeout(recognitionTimeout);
+    recognition = null;
+    if (state.listening) {
+      state.listening = false;
+      state.blendPhase = 'result';
+      state.blendResult = null;
+      renderBlendScreen();
+    }
+  };
+
+  try { rec.start(); } catch {
+    recognition = null;
+    state.listening = false;
+    state.blendPhase = 'result';
+    state.blendResult = null;
+    renderBlendScreen();
+  }
+}
+
+function renderBlendScreen() {
+  const sound = soundsMap[state.selectedSound];
+  const blendWord = sound.blendWords[state.blendIndex];
+  const letters = blendWord.split('');
+  const isLastBlend = state.blendIndex === sound.blendWords.length - 1;
+
+  let resultBlock = '';
+  if (state.blendPhase === 'result') {
+    if (state.blendResult === 'correct') {
+      resultBlock = `
+        <div class="recognition-result correct">
+          <span class="result-icon">⭐</span>
+          <span class="result-label" style="color:#16a34a">You read it!</span>
+          <button class="btn-next" id="btn-blend-next">${isLastBlend ? '🏆 Finish!' : 'Next word →'}</button>
+        </div>`;
+    } else if (state.blendResult === 'try-again') {
+      resultBlock = `
+        <div class="recognition-result try-again">
+          <span class="result-icon">💪</span>
+          <span class="result-label" style="color:#ea580c">Good try! Say it again!</span>
+          ${state.blendTranscript ? `<span class="result-transcript">I heard: "${state.blendTranscript}"</span>` : ''}
+          <button class="btn-say btn-say-retry" id="btn-blend-retry">
+            <span class="say-icon">🎤</span><span class="say-text">Say it!</span>
+          </button>
+          <button class="btn-skip" id="btn-blend-skip">${isLastBlend ? '🏆 Finish!' : 'Skip →'}</button>
+        </div>`;
+    } else {
+      resultBlock = `
+        <div class="recognition-result unsupported">
+          <span class="result-icon">🎤</span>
+          <span class="result-label" style="color:#4b5563">Couldn't hear you. Try again!</span>
+          <button class="btn-say btn-say-retry" id="btn-blend-retry">
+            <span class="say-icon">🎤</span><span class="say-text">Try again!</span>
+          </button>
+          <button class="btn-skip" id="btn-blend-skip">${isLastBlend ? '🏆 Finish!' : 'Skip →'}</button>
+        </div>`;
+    }
+  }
+
+  const blendDots = sound.blendWords.map((_, i) => {
+    const cls = i < state.blendIndex ? 'dot past' : i === state.blendIndex ? 'dot current' : 'dot future';
+    const style = i === state.blendIndex ? `background:${sound.color}` : '';
+    return `<div class="${cls}" style="${style}"></div>`;
+  }).join('');
+
+  document.getElementById('app').innerHTML = `
+    <div class="screen practice-screen blend-screen">
+      <div style="background:${sound.color}; padding:12px 16px 8px;">
+        <div class="practice-header">
+          <button class="btn-back" id="btn-back">← Back</button>
+          <div style="text-align:center">
+            <div class="sound-label-header">📖 Reading Time!</div>
+            <div class="sound-meta">${sound.label} words</div>
+          </div>
+          <div></div>
+        </div>
+        <div class="progress-dots">${blendDots}</div>
+      </div>
+
+      <div class="blend-content">
+        <div class="blend-instruction">Tap each letter, then read the whole word!</div>
+
+        <div class="blend-letters-row">
+          ${letters.map((l, i) => `
+            <button class="blend-letter-box" id="blend-letter-${i}"
+              data-letter="${l}" style="border-color:${sound.color}">
+              ${l}
+            </button>`).join('')}
+        </div>
+
+        <button class="btn-hear blend-hear-btn" id="btn-blend-hear">
+          <span>👂</span> Hear it all together!
+        </button>
+
+        ${state.blendPhase === 'idle' || state.blendPhase === 'listening' ? `
+          <div class="say-it-section">
+            <button class="btn-say${state.listening ? ' listening' : ''}" id="btn-blend-say"
+              ${state.listening ? 'disabled' : ''}>
+              <span class="mic-ring${state.listening ? '' : ' hidden'}"></span>
+              <span class="mic-ring-2${state.listening ? '' : ' hidden'}"></span>
+              <span class="say-icon">🎤</span>
+              <span class="say-text">${state.listening ? 'Listening!' : 'Say it!'}</span>
+            </button>
+            <span class="say-hint${state.listening ? '' : ' hidden'}">Say the word now!</span>
+          </div>` : ''}
+
+        ${resultBlock}
+      </div>
+    </div>
+    <div id="encouragement-overlay" class="encouragement-overlay hidden"></div>`;
+
+  document.getElementById('btn-back').addEventListener('click', () => {
+    state.screen = 'practice';
+    state.phase = 'idle';
+    state.cardIndex = Math.max(0, sound.words.length - 1);
+    renderPracticeScreen();
+  });
+
+  document.getElementById('btn-blend-hear').addEventListener('click', () => speak(blendWord));
+
+  letters.forEach((l, i) => {
+    const btn = document.getElementById(`blend-letter-${i}`);
+    if (btn) btn.addEventListener('click', () => {
+      speak(LETTER_SOUNDS[l] || l);
+      document.querySelectorAll('.blend-letter-box').forEach(b => b.classList.remove('tapped'));
+      btn.classList.add('tapped');
+      btn.style.borderColor = sound.color;
+      btn.style.background = sound.colorLight;
+    });
+  });
+
+  const blendSayBtn = document.getElementById('btn-blend-say');
+  if (blendSayBtn) blendSayBtn.addEventListener('click', () => {
+    if (state.blendPhase !== 'idle') return;
+    startBlendListening(blendWord);
+  });
+
+  const blendNext = document.getElementById('btn-blend-next');
+  const blendRetry = document.getElementById('btn-blend-retry');
+  const blendSkip = document.getElementById('btn-blend-skip');
+  if (blendNext) blendNext.addEventListener('click', () => advanceBlend(true));
+  if (blendRetry) blendRetry.addEventListener('click', () => {
+    state.blendResult = null;
+    state.blendPhase = 'idle';
+    state.blendTranscript = '';
+    startBlendListening(blendWord);
+  });
+  if (blendSkip) blendSkip.addEventListener('click', () => advanceBlend(false));
+}
+
+function advanceBlend(showMsg = true) {
+  const sound = soundsMap[state.selectedSound];
+  const isLast = state.blendIndex === sound.blendWords.length - 1;
+
+  if (showMsg) {
+    const msg = state.blendResult === 'correct' ? randomCorrect() : randomTryAgain();
+    showEncouragement(msg);
+  }
+
+  if (isLast) {
+    state.screen = 'celebration';
+    setTimeout(renderCelebration, showMsg ? 1200 : 0);
+    return;
+  }
+
+  state.blendIndex++;
+  state.blendPhase = 'idle';
+  state.blendResult = null;
+  state.blendTranscript = '';
+  setTimeout(renderBlendScreen, showMsg ? 300 : 0);
 }
 
 // ══════════════════════════════════════════════════════════════════════
