@@ -77,10 +77,19 @@ function startListening(targetWord) {
     return;
   }
 
-  // Clean up previous instance without triggering its stale handlers
+  // Release MediaRecorder stream so it doesn't block the mic
+  releaseMicStream();
+
+  // Clean up previous instance — null handlers first so no stale callbacks fire
   const prev = recognition;
   recognition = null;
-  if (prev) { try { prev.abort(); } catch {} }
+  if (prev) {
+    prev.onstart = null;
+    prev.onresult = null;
+    prev.onerror = null;
+    prev.onend = null;
+    try { prev.abort(); } catch {}
+  }
   clearTimeout(recognitionTimeout);
 
   // Use a local ref so stale onend/onerror from a previous instance can't corrupt state
@@ -98,10 +107,19 @@ function startListening(targetWord) {
     state.phase = 'listening';
     renderPracticeScreen(); // always re-render so "Listening!" shows even on retry
     recognitionTimeout = setTimeout(() => {
-      if (recognition === rec && state.listening) {
-        try { rec.stop(); } catch {}
-      }
-    }, 7000);
+      if (recognition !== rec || !state.listening) return;
+      // Force-recover: don't rely on onend firing (some mobile browsers skip it)
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+      recognition = null;
+      state.listening = false;
+      state.micError = 'nospeech';
+      state.recognitionResult = 'unsupported';
+      state.phase = 'result';
+      try { rec.abort(); } catch {}
+      renderPracticeScreen();
+    }, 8000);
   };
 
   rec.onresult = (evt) => {
@@ -181,11 +199,25 @@ function updateSayItUI() {
 // MediaRecorder
 let mediaRecorder = null;
 let audioChunks = [];
+let micStream = null; // tracked so we can release it before speech recognition
+
+function releaseMicStream() {
+  if (micStream) {
+    micStream.getTracks().forEach(t => t.stop());
+    micStream = null;
+  }
+  if (mediaRecorder && state.recording) {
+    try { mediaRecorder.stop(); } catch {}
+    mediaRecorder = null;
+    state.recording = false;
+  }
+}
 
 async function startRecording() {
   audioChunks = [];
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStream = stream;
     mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.onstop = () => {
@@ -193,7 +225,7 @@ async function startRecording() {
       if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
       state.audioUrl = URL.createObjectURL(blob);
       state.recording = false;
-      stream.getTracks().forEach(t => t.stop());
+      releaseMicStream();
       renderRecordSection();
     };
     mediaRecorder.start();
@@ -210,6 +242,7 @@ function stopRecording() {
 }
 
 function clearRecording() {
+  releaseMicStream();
   if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
   renderRecordSection();
 }
